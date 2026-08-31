@@ -48,6 +48,7 @@
 </div>
       <p class="description">{{ product.description }}</p>
       <form method="post" action="{{ url_for('update_cart', product_id=product.id) }}">
+<input type="hidden" name="cart_version" value="{{ cart_version }}">
 <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
 <input type="hidden" name="action" value="add">
 <button class="add-button" {% if not product.stock %}disabled{% endif %} aria-label="{% if product.stock %}Add {{ product.name }} to cart{% else %}{{ product.name }} sold out{% endif %}">{% if product.stock %}Add to cart <span aria-hidden="true">+</span>{% else %}Currently unavailable{% endif %}</button>

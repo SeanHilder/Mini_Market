@@ -1,0 +1,59 @@
+{
+  "scope": "Local WSGI application plus PostgreSQL; excludes network/proxy/TLS, cart setup and console logging",
+  "postgresql_version": "17.11",
+  "scenarios": {
+    "regular_checkout": {
+      "attempts": 100,
+      "workers": 8,
+      "duration_seconds": 0.678,
+      "attempts_per_second": 147.59,
+      "status_counts": {
+        "303": 100
+      },
+      "latency_ms": {
+        "p50": 49.89,
+        "p95": 62.48,
+        "max": 163.02
+      }
+    },
+    "last_item_contention": {
+      "attempts": 16,
+      "workers": 8,
+      "duration_seconds": 0.213,
+      "attempts_per_second": 75.16,
+      "status_counts": {
+        "303": 1,
+        "409": 15
+      },
+      "latency_ms": {
+        "p50": 45.56,
+        "p95": 148.93,
+        "max": 148.93
+      }
+    },
+    "duplicate_checkout": {
+      "attempts": 16,
+      "workers": 8,
+      "duration_seconds": 0.198,
+      "attempts_per_second": 81.01,
+      "status_counts": {
+        "303": 16
+      },
+      "latency_ms": {
+        "p50": 44.11,
+        "p95": 134.96,
+        "max": 134.96
+      }
+    }
+  },
+  "invariants": {
+    "regular_orders_succeeded": true,
+    "last_item_has_one_winner": true,
+    "retries_return_one_receipt": true,
+    "stock_matches_orders": true,
+    "order_count_exact": true,
+    "totals_match_items": true,
+    "failed_carts_preserved": true
+  },
+  "passed": true
+}

@@ -17,6 +17,7 @@
 <h2>{{ line.product.name }}</h2>
 <p>{{ line.product.price_cents|money }} each · {{ line.product.stock }} available</p>
 <form class="quantity-form" method="post" action="{{ url_for('update_cart', product_id=line.product.id) }}">
+<input type="hidden" name="cart_version" value="{{ cart_version }}">
 <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
 <label for="quantity-{{ line.product.id }}">Quantity</label>
 <input id="quantity-{{ line.product.id }}" name="quantity" type="number" min="1" max="99" value="{{ line.quantity }}" required>
@@ -46,8 +47,9 @@
 <strong>{{ total|money }}</strong>
 </div>
 <form method="post" action="{{ url_for('checkout') }}">
+<input type="hidden" name="cart_version" value="{{ cart_version }}">
 <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
-<input type="hidden" name="checkout_key" value="{{ session.checkout_key }}">
+<input type="hidden" name="checkout_key" value="{{ checkout_key }}">
 <button class="button dark full">Place demo order <span aria-hidden="true">↗</span>
 </button>
 </form>

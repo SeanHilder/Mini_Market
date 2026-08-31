@@ -8,11 +8,10 @@ def test_catalogue_and_empty_cart(client):
     assert b"Your cart is empty" in client.get("/cart").data
 
 def test_complete_journey_and_repeat_submit(client, form, database):
-    assert client.post("/cart/1", data={**form, "action": "add"}).status_code == 303
-    assert client.post("/cart/1", data={**form, "action": "update", "quantity": "2"}).status_code == 303
-    with client.session_transaction() as session:
-        key = session["checkout_key"]
-    payload = {**form, "checkout_key": key, "price_cents": "1", "total_cents": "1"}
+    assert client.post("/cart/1", data={**form(), "action": "add"}).status_code == 303
+    assert client.post("/cart/1", data={**form(), "action": "update", "quantity": "2"}).status_code == 303
+    key = form()["checkout_key"]
+    payload = {**form(), "checkout_key": key, "price_cents": "1", "total_cents": "1"}
     response = client.post("/checkout", data=payload)
     assert response.status_code == 303
     receipt = client.get(response.location)
@@ -24,50 +23,59 @@ def test_complete_journey_and_repeat_submit(client, form, database):
 
 @pytest.mark.parametrize("quantity", ["0", "-1", "100", "1.5", "hello", ""])
 def test_quantity_validation(client, form, quantity):
-    assert client.post("/cart/1", data={**form, "action": "update", "quantity": quantity}).status_code == 400
+    assert client.post("/cart/1", data={**form(), "action": "update", "quantity": quantity}).status_code == 400
 
 def test_remove(client, form):
-    client.post("/cart/1", data={**form, "action": "add"})
-    client.post("/cart/1", data={**form, "action": "remove"})
+    client.post("/cart/1", data={**form(), "action": "add"})
+    client.post("/cart/1", data={**form(), "action": "remove"})
     assert b"Your cart is empty" in client.get("/cart").data
 
 def test_stock_changes_before_checkout(client, form, database):
-    client.post("/cart/5", data={**form, "action": "add"})
+    client.post("/cart/5", data={**form(), "action": "add"})
     database.execute("UPDATE products SET stock = 0 WHERE id = 5")
     database.commit()
-    with client.session_transaction() as session:
-        key = session["checkout_key"]
-    response = client.post("/checkout", data={**form, "checkout_key": key})
+    key = form()["checkout_key"]
+    response = client.post("/checkout", data={**form(), "checkout_key": key})
     assert response.status_code == 409
     assert b"Only 0 of Desk planter available" in response.data
     with client.session_transaction() as session:
-        assert session["cart"] == {"5": 1}
+        assert "cart" not in session
+        from mini_market.carts import read_cart
+        assert read_cart(database, session["cart_id"]) == {"5": 1}
 
 def test_csrf_and_unknown_resources(client, form):
     assert client.post("/cart/1", data={"action": "add"}).status_code == 400
     assert client.post("/checkout", data={"csrf_token": "wrong"}).status_code == 400
-    assert client.post("/cart/999", data={**form, "action": "add"}).status_code == 404
+    assert client.post("/cart/999", data={**form(), "action": "add"}).status_code == 404
     assert client.get("/orders/unknown").status_code == 404
     assert client.get("/missing").status_code == 404
     assert client.get("/checkout").status_code == 405
 
 def test_stale_checkout_and_sold_out(client, form):
-    with client.session_transaction() as session:
-        old_key = session["checkout_key"]
-    client.post("/cart/1", data={**form, "action": "add"})
-    assert client.post("/checkout", data={**form, "checkout_key": old_key}).status_code == 409
-    assert client.post("/cart/6", data={**form, "action": "add"}).status_code == 409
+    old_key = form()["checkout_key"]
+    client.post("/cart/1", data={**form(), "action": "add"})
+    assert client.post("/checkout", data={**form(), "checkout_key": old_key}).status_code == 409
+    assert client.post("/cart/6", data={**form(), "action": "add"}).status_code == 409
 
 def test_database_error_is_safe(client, form, database):
-    client.post("/cart/1", data={**form, "action": "add"})
-    database.execute("CREATE TRIGGER fail_order BEFORE INSERT ON orders BEGIN SELECT RAISE(ABORT, 'private detail'); END")
+    client.post("/cart/1", data={**form(), "action": "add"})
+    if database.postgres:
+        database.execute("CREATE FUNCTION fail_order() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'private detail'; END $$")
+        database.execute("CREATE TRIGGER fail_order BEFORE INSERT ON orders FOR EACH ROW EXECUTE FUNCTION fail_order()")
+    else:
+        database.execute("CREATE TRIGGER fail_order BEFORE INSERT ON orders BEGIN SELECT RAISE(ABORT, 'private detail'); END")
     database.commit()
-    with client.session_transaction() as session:
-        key = session["checkout_key"]
-    response = client.post("/checkout", data={**form, "checkout_key": key})
+    key = form()["checkout_key"]
+    response = client.post("/checkout", data={**form(), "checkout_key": key})
     assert response.status_code == 503
     assert b"No payment was taken" in response.data
     assert b"private detail" not in response.data
+    with client.session_transaction() as session:
+        from mini_market.carts import get_cart, read_cart
+        assert read_cart(database, session["cart_id"]) == {"1": 1}
+        assert get_cart(database, session["cart_id"])["version"] == 1
+    assert database.execute("SELECT stock FROM products WHERE id = 1").fetchone()[0] == 12
+    assert database.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
 
 def test_security_headers(client):
     response = client.get("/")
@@ -78,5 +86,5 @@ def test_security_headers(client):
 
 def test_malformed_tokens_and_very_large_quantity(client, form):
     assert client.post("/cart/1", data={"csrf_token": "é", "action": "add"}).status_code == 400
-    assert client.post("/checkout", data={**form, "checkout_key": "é"}).status_code == 409
-    assert client.post("/cart/1", data={**form, "action": "update", "quantity": "9" * 5000}).status_code == 400
+    assert client.post("/checkout", data={**form(), "checkout_key": "é"}).status_code == 409
+    assert client.post("/cart/1", data={**form(), "action": "update", "quantity": "9" * 5000}).status_code == 400

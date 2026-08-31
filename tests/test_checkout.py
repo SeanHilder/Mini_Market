@@ -31,10 +31,16 @@ def test_unavailable_or_empty_order(database, cart):
     assert database.execute("SELECT stock FROM products WHERE id = 1").fetchone()[0] == 12
 
 def test_failure_after_first_item_rolls_back_everything(database):
-    database.execute("""CREATE TRIGGER fail_second_item BEFORE INSERT ON order_items
-        WHEN NEW.product_id = 2 BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END""")
+    if database.postgres:
+        database.execute("""CREATE FUNCTION fail_item() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN IF NEW.product_id = 2 THEN RAISE EXCEPTION 'simulated storage failure'; END IF; RETURN NEW; END $$""")
+        database.execute("CREATE TRIGGER fail_second_item BEFORE INSERT ON order_items FOR EACH ROW EXECUTE FUNCTION fail_item()")
+    else:
+        database.execute("""CREATE TRIGGER fail_second_item BEFORE INSERT ON order_items
+            WHEN NEW.product_id = 2 BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END""")
     database.commit()
-    with pytest.raises(sqlite3.IntegrityError):
+    from mini_market.db import DATABASE_ERRORS
+    with pytest.raises(DATABASE_ERRORS):
         place_order(database, {"1": 1, "2": 1}, "rollback")
     assert database.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
     assert database.execute("SELECT COUNT(*) FROM order_items").fetchone()[0] == 0
