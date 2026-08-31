@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Mini Market · Everyday essentials{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="announcement">A small store for everyday things. <span>Demo store · No real payments</span>
+</div>
+  <header class="site-header wrap">
+    <a class="brand" href="{{ url_for('catalogue') }}">
+<span class="brand-mark">m.</span>mini market</a>
+    <nav aria-label="Main navigation">
+<a href="{{ url_for('catalogue') }}">The collection</a>
+<a class="cart-link" href="{{ url_for('cart') }}">Your cart <span>{{ cart_count }}</span>
+</a>
+</nav>
+  </header>
+  <main id="main" class="wrap">
+    {% for message in get_flashed_messages() %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="wrap">
+<a class="footer-brand" href="{{ url_for('catalogue') }}">mini market.</a>
+<p>A little less ordinary. A little more everyday.</p>
+<span>Student project · Prices in AUD · Simulated checkout</span>
+</footer>
+</body>
+</html>

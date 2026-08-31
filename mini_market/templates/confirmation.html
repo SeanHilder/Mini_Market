@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Order confirmed · Mini Market{% endblock %}
+{% block content %}
+<section class="confirmation">
+<span class="success-icon" aria-hidden="true">✓</span>
+<p class="eyebrow">ALL SORTED</p>
+<h1>Good things, confirmed.</h1>
+<p>Your demo order has been saved and stock updated.</p>
+<p class="reference">{{ order.reference }}</p>
+<div class="receipt">
+<h2>Your order</h2>{% for item in items %}<div class="summary-line">
+<span>{{ item.product_name }} × {{ item.quantity }}</span>
+<span>{{ (item.unit_price_cents * item.quantity)|money }}</span>
+</div>{% endfor %}<div class="summary-total">
+<span>Total <small>AUD</small>
+</span>
+<strong>{{ order.total_cents|money }}</strong>
+</div>
+</div>
+<p class="fine-print">No payment was taken. This demo order will not be shipped.<br>Keep this link to view your order. Anyone with the link can view this receipt.</p>
+<a class="button dark" href="{{ url_for('catalogue') }}">Back to the collection <span aria-hidden="true">↗</span>
+</a>
+</section>
+{% endblock %}

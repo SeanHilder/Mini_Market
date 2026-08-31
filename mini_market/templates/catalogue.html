@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero">
+  <div>
+<p class="eyebrow">THE EVERYDAY COLLECTION / 01</p>
+<h1>Good things.<br>Simple living.</h1>
+<p class="hero-copy">Thoughtful essentials for your desk, your home,<br class="desktop-break"> and wherever the day takes you.</p>
+<a class="button dark" href="#collection">Explore the collection <span aria-hidden="true">↗</span>
+</a>
+</div>
+  <div class="hero-art" aria-hidden="true">
+<div class="orbit">
+</div>
+<div class="hero-bag">
+<div class="bag-handle">
+</div>
+<span>mini<br>market.</span>
+</div>
+<div class="round-label">EVERYDAY<br>FAVOURITES<br>↗</div>
+<p>LESS FUSS. MORE GOOD STUFF.</p>
+</div>
+</section>
+<section id="collection" class="collection">
+  <div class="section-heading">
+<div>
+<p class="eyebrow">SMALL COLLECTION. BIG EVERYDAY ENERGY.</p>
+<h2>Meet your new essentials</h2>
+</div>
+<span>{{ products|length }} considered picks</span>
+</div>
+  <div class="product-grid">
+  {% for product in products %}
+    <article class="product-card">
+      <div class="product-art art-{{ product.illustration }}" aria-hidden="true">
+<span class="art-number">0{{ product.id }} / MM</span>
+<div class="object object-{{ product.illustration }}">
+<span>{{ product.initials }}</span>
+</div>
+<span class="art-caption">MINI MARKET / EVERYDAY GOODS</span>
+</div>
+      <div class="product-meta">
+<span>{{ product.category }}</span>
+<span class="stock {% if product.stock <= 1 %}low{% endif %}">{% if product.stock == 0 %}Sold out{% elif product.stock == 1 %}Last one left{% else %}{{ product.stock }} in stock{% endif %}</span>
+</div>
+      <div class="product-title">
+<h3>{{ product.name }}</h3>
+<strong>{{ product.price_cents|money }}</strong>
+</div>
+      <p class="description">{{ product.description }}</p>
+      <form method="post" action="{{ url_for('update_cart', product_id=product.id) }}">
+<input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+<input type="hidden" name="action" value="add">
+<button class="add-button" {% if not product.stock %}disabled{% endif %} aria-label="{% if product.stock %}Add {{ product.name }} to cart{% else %}{{ product.name }} sold out{% endif %}">{% if product.stock %}Add to cart <span aria-hidden="true">+</span>{% else %}Currently unavailable{% endif %}</button>
+</form>
+    </article>
+  {% endfor %}
+  </div>
+</section>
+<aside class="store-note">
+<span class="note-icon" aria-hidden="true">↳</span>
+<div>
+<h2>Small store. Thoughtful details.</h2>
+<p>Clear prices, visible stock, and a chance to review everything before you order.</p>
+</div>
+<span class="note-tag">THAT’S THE IDEA.</span>
+</aside>
+{% endblock %}

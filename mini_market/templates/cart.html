@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Your cart · Mini Market{% endblock %}
+{% block content %}
+<section class="page-heading">
+<p class="eyebrow">ONE STEP CLOSER</p>
+<h1>Your cart.</h1>
+<p>A few good things, picked by you.</p>
+</section>
+{% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+{% if lines %}
+<div class="cart-layout">
+<section aria-label="Cart items">
+{% for line in lines %}
+<article class="cart-row">
+<div class="cart-thumb art-{{ line.product.illustration }}" aria-hidden="true">{{ line.product.initials }}</div>
+<div class="cart-item">
+<h2>{{ line.product.name }}</h2>
+<p>{{ line.product.price_cents|money }} each · {{ line.product.stock }} available</p>
+<form class="quantity-form" method="post" action="{{ url_for('update_cart', product_id=line.product.id) }}">
+<input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+<label for="quantity-{{ line.product.id }}">Quantity</label>
+<input id="quantity-{{ line.product.id }}" name="quantity" type="number" min="1" max="99" value="{{ line.quantity }}" required>
+<button class="text-button" name="action" value="update">Update</button>
+<button class="text-button muted" name="action" value="remove" formnovalidate>Remove</button>
+</form>
+</div>
+<strong>{{ line.subtotal|money }}</strong>
+</article>
+{% endfor %}
+<a class="back-link" href="{{ url_for('catalogue') }}">← Continue browsing</a>
+</section>
+<aside class="summary">
+<p class="eyebrow">THE GOOD STUFF, TOGETHER</p>
+<h2>Order summary</h2>
+<div class="summary-line">
+<span>Subtotal</span>
+<span>{{ total|money }}</span>
+</div>
+<div class="summary-line">
+<span>Delivery</span>
+<span>Not applicable (demo)</span>
+</div>
+<div class="summary-total">
+<span>Total <small>AUD</small>
+</span>
+<strong>{{ total|money }}</strong>
+</div>
+<form method="post" action="{{ url_for('checkout') }}">
+<input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+<input type="hidden" name="checkout_key" value="{{ session.checkout_key }}">
+<button class="button dark full">Place demo order <span aria-hidden="true">↗</span>
+</button>
+</form>
+<p class="fine-print">This is a simulated checkout. No payment details are collected, no money is charged, and no goods are shipped. Stock is checked again when you order.</p>
+</aside>
+</div>
+{% else %}<section class="empty-state">
+<span aria-hidden="true">↗</span>
+<h2>Your next everyday favourite is waiting.</h2>
+<p>Your cart is empty. Explore the collection to get started.</p>
+<a class="button dark" href="{{ url_for('catalogue') }}">Browse the collection</a>
+</section>{% endif %}
+{% endblock %}
